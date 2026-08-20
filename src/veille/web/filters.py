@@ -73,6 +73,41 @@ def excerpt(value: str | None, length: int = 240) -> str:
     return text[:length].rsplit(" ", 1)[0] + "…"
 
 
+#: Prefixe du message -> nature de la panne. Le pipeline ecrit
+#: "<NomDException>: <message>" precisement pour rendre ce tri possible.
+ERROR_KINDS: dict[str, str] = {
+    "FetchError": "reseau",
+    "FeedParseError": "flux",
+    "InvalidUrlError": "flux",
+    "VeilleError": "flux",
+}
+
+ERROR_KIND_LABELS = {
+    "reseau": "réseau",
+    "flux": "flux",
+    "interne": "interne",
+}
+
+
+def error_kind(message: str | None) -> str:
+    """'reseau' | 'flux' | 'interne' | ''.
+
+    Une panne reseau est transitoire et attendue (hnrss tombe regulierement) ;
+    un flux illisible demande une action. Les afficher de la meme couleur revient
+    a n'en afficher aucune.
+    """
+    if not message:
+        return ""
+    name = message.split(":", 1)[0].strip()
+    if name in ERROR_KINDS:
+        return ERROR_KINDS[name]
+    return "interne" if name.endswith("Error") else ""
+
+
+def error_kind_label(message: str | None) -> str:
+    return ERROR_KIND_LABELS.get(error_kind(message), "")
+
+
 def lang_label(value: str) -> str:
     return LANG_LABELS.get(value, value.upper())
 
@@ -90,6 +125,8 @@ FILTERS = {
     "datetime_attr": datetime_attr,
     "absolute_date": absolute_date,
     "relative_date": relative_date,
+    "error_kind": error_kind,
+    "error_kind_label": error_kind_label,
     "excerpt": excerpt,
     "lang_label": lang_label,
     "topic_label": topic_label,

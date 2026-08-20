@@ -143,6 +143,19 @@ table.feeds .never { color: var(--muted); }
 .status-ok { color: var(--ok); }
 .status-not_modified { color: var(--muted); }
 .status-error { color: var(--error); }
+/* Panne reseau : transitoire et attendue, elle ne merite pas la meme alarme
+   qu'un flux illisible. Sans cette nuance, /feeds est rouge en permanence. */
+.status-error.kind-reseau { color: var(--warn); }
+.kind-label {
+  display: inline-block;
+  margin-left: .25rem;
+  padding: .02rem .3rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 400;
+}
 
 footer {
   max-width: 62rem;

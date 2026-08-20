@@ -96,6 +96,17 @@ feeds:
     topic: ai
     source_type: community
 
+  # Pas de points= ici, contrairement a hn-ai, et c'est mesure et non suppose.
+  # hnrss renvoie toujours 20 items (taille de page) : points= ne reduit pas le
+  # volume, il remonte plus loin dans le temps pour remplir la page. Releve du
+  # 2026-08-20 sur q=cybersecurity, nombre d'items de moins de 7 / 30 jours :
+  #   aucun seuil : 20 items,  1 / 18, fenetre  32 jours
+  #   points=5    : 20 items,  0 /  4, fenetre  82 jours
+  #   points=10   : 20 items,  0 /  3, fenetre 204 jours
+  #   points=25   : 20 items,  0 /  2, fenetre 325 jours
+  # Un seuil n'achete donc pas de la qualite, il achete de la peremption. A
+  # comparer a q=AI&points=100 : 20 items tous dans les 6 derniers jours, le
+  # volume IA sur HN est sans commune mesure avec le volume cyber.
   - id: hn-sec
     name: Hacker News - cybersecurity
     url: https://hnrss.org/newest?q=cybersecurity

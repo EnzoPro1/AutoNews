@@ -45,7 +45,11 @@
       </td>
       <td>
         {% if item.last_run %}
-          <span class="status status-{{ item.last_run.status }}">{{ item.last_run.status }}</span>
+          {% set kind = item.last_run.error_message | error_kind if item.last_run.status == 'error' else '' %}
+          <span class="status status-{{ item.last_run.status }} kind-{{ kind }}">{{ item.last_run.status }}</span>
+          {% if kind %}
+            <span class="kind-label" title="Une panne reseau est transitoire ; un flux illisible demande une action.">{{ item.last_run.error_message | error_kind_label }}</span>
+          {% endif %}
         {% else %}
           <span class="status status-never">—</span>
         {% endif %}

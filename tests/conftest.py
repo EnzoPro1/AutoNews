@@ -57,11 +57,13 @@ from datetime import UTC, datetime  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from veille.db import SessionLocal  # noqa: E402
 from veille.models import Article, ArticleFeed, Feed, FeedRun  # noqa: E402
 from veille.schemas import FeedSpec  # noqa: E402
+from veille.web.app import app  # noqa: E402
 
 #: Horloge de reference. Toutes les etapes prennent leur temps en parametre :
 #: aucun test n'a besoin de geler datetime.now globalement.
@@ -131,3 +133,10 @@ def make_feed(session: Session, slug: str, **overrides: object) -> Feed:
     session.commit()
     session.refresh(row)
     return row
+
+
+@pytest.fixture
+def client(session: Session) -> Iterator[TestClient]:
+    """Client HTTP de test. Depend de `session` : la base est nettoyee avant."""
+    with TestClient(app) as test_client:
+        yield test_client

@@ -108,7 +108,14 @@ def _ingest_one(
 
 def _record_run(session: Session, outcome: FeedRunOutcome) -> None:
     """Ecrit la trace du passage. Commit immediat : le statut d'un flux ne doit
-    pas dependre du sort des flux suivants."""
+    pas dependre du sort des flux suivants.
+
+    Le format "<NomDException>: <message>" est un CONTRAT, pas un hasard de
+    formatage : /feeds s'en sert pour distinguer une panne transitoire (reseau,
+    502, timeout) d'un flux reellement casse. Sans cette distinction le tableau
+    de bord serait rouge en permanence a cause de hnrss, et on cesserait de le
+    regarder. Voir veille.web.filters.error_kind.
+    """
     message = outcome.error_message
     if message is None and outcome.warnings:
         message = " | ".join(outcome.warnings)
