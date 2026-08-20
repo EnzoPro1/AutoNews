@@ -87,6 +87,13 @@ def make_spec(feed_id: str = "demo", **overrides: object) -> FeedSpec:
     return FeedSpec(**values)  # type: ignore[arg-type]
 
 
+#: En CI, un skip silencieux est pire qu'un echec : si CREATE EXTENSION vector
+#: echouait (image postgres standard au lieu de pgvector), tous les tests marques
+#: db seraient sautes et la CI resterait verte. Un faux vert sur la moitie de la
+#: suite. VEILLE_REQUIRE_DB=1 transforme donc le skip en echec.
+REQUIRE_DB = os.environ.get("VEILLE_REQUIRE_DB", "").strip().lower() in ("1", "true", "yes")
+
+
 @pytest.fixture(scope="session")
 def _database() -> None:
     """Applique les migrations sur la base de test.
@@ -99,6 +106,8 @@ def _database() -> None:
     try:
         command.upgrade(config, "head")
     except Exception as exc:  # pragma: no cover - depend de l'environnement
+        if REQUIRE_DB:
+            raise
         pytest.skip(f"Postgres indisponible : {exc}")
 
 

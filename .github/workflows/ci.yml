@@ -32,6 +32,10 @@ jobs:
     env:
       VEILLE_DATABASE_URL: postgresql+psycopg://veille:veille@localhost:5432/veille
       VEILLE_FEEDS_PATH: ${{ github.workspace }}/feeds.yaml
+      # Interdit le skip silencieux des tests marques db : sans ca, une image
+      # postgres sans pgvector ferait echouer CREATE EXTENSION, sauter la moitie
+      # de la suite, et la CI resterait verte.
+      VEILLE_REQUIRE_DB: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -55,3 +59,8 @@ jobs:
 
       - name: pytest
         run: pytest
+
+      - name: Aucun test de base sauté
+        # Filet de securite explicite : si un seul test db est saute, la CI doit
+        # etre rouge, pas verte.
+        run: pytest -m db -q --no-header | tee /tmp/db.txt && ! grep -q "skipped" /tmp/db.txt
