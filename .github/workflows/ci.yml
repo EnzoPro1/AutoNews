@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        # Meme image qu'en local : SQLite ne sait pas executer CREATE EXTENSION
+        # vector, on testerait un schema different de la production.
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: veille
+          POSTGRES_PASSWORD: veille
+          POSTGRES_DB: veille
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veille -d veille"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      VEILLE_DATABASE_URL: postgresql+psycopg://veille:veille@localhost:5432/veille
+      VEILLE_FEEDS_PATH: ${{ github.workspace }}/feeds.yaml
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: ruff check
+        run: ruff check .
+
+      - name: ruff format --check
+        run: ruff format --check .
+
+      - name: alembic upgrade head
+        run: alembic upgrade head
+
+      - name: pytest
+        run: pytest
