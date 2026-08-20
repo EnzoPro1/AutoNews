@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 MAX_URL_LENGTH = 2048
 ALLOWED_SCHEMES = frozenset({"http", "https"})
 
+#: Ports implicites. 80 en fait partie bien qu'on emette toujours du https :
+#: http://exemple.com:80/a et https://exemple.com/a designent la meme page.
+DEFAULT_PORTS = frozenset({80, 443})
+
 #: Prefixes de parametres a jeter (tout ce qui commence par).
 TRACKING_PREFIXES: tuple[str, ...] = ("utm_", "pk_", "piwik_", "_ga", "at_custom")
 
@@ -89,7 +93,7 @@ def canonicalize_url(raw: str | None) -> str:
     if not host:
         raise InvalidUrlError(f"host absent : {raw!r}")
     port = parts.port
-    netloc = f"{host}:{port}" if port and port != 443 else host
+    netloc = f"{host}:{port}" if port and port not in DEFAULT_PORTS else host
 
     # 11-13. path : segments relatifs, doublons de /, encodage, suffixe amp
     path = _normalize_path(parts.path)

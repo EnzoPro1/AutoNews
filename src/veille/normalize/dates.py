@@ -65,7 +65,9 @@ def parse_datetime(value: str | time.struct_time | None) -> datetime | None:
 
     for fmt in _FORMATS:
         try:
-            return _as_utc(datetime.strptime(raw, fmt), raw)
+            # strptime rend un naif pour les formats sans %z : c'est exactement
+            # le cas "fuseau absent", que _as_utc traite explicitement.
+            return _as_utc(datetime.strptime(raw, fmt), raw)  # noqa: DTZ007
         except ValueError:
             continue
 
