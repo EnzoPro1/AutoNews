@@ -38,14 +38,26 @@ def parse_feed(body: bytes, *, fetched_at: datetime) -> ParseResult:
     """
     if fetched_at.tzinfo is None:
         raise ValueError("fetched_at doit etre timezone-aware")
+    if not body.strip():
+        raise FeedParseError("corps vide")
 
-    parsed = feedparser.parse(body)
+    # sanitize_html=False : feedparser nettoie le HTML par defaut, ce qui viderait
+    # raw_summary de son contenu reel et ferait dependre la securite du rendu de
+    # SON allowlist au lieu de la notre. Le brut est conserve pour audit, nh3
+    # reste le seul assainisseur.
+    parsed = feedparser.parse(body, sanitize_html=False)
     raw_entries = list(parsed.get("entries") or [])
     bozo_exception = parsed.get("bozo_exception")
     is_bozo = bool(parsed.get("bozo"))
 
     if is_bozo and (not raw_entries or isinstance(bozo_exception, SAXException)):
         raise FeedParseError(f"flux illisible : {bozo_exception!r}")
+
+    # feedparser laisse `version` vide quand il n'a pas reconnu un format de flux
+    # (une page HTML d'erreur renvoyee en 200, par exemple). Un flux valide mais
+    # momentanement vide, lui, a bien une version : les deux cas restent distincts.
+    if not parsed.get("version") and not raw_entries:
+        raise FeedParseError("document non reconnu comme un flux RSS ou Atom")
 
     bozo_message = repr(bozo_exception) if is_bozo else None
     if bozo_message:

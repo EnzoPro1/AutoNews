@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from conftest import NOW, read_fixture
 
+from conftest import NOW, read_fixture
 from veille.errors import FeedParseError
 from veille.ingest.parse import parse_feed
 
@@ -100,7 +100,9 @@ def test_broken_dates_never_crash_and_are_all_utc() -> None:
 
 
 def test_broken_dates_use_the_documented_fallbacks() -> None:
-    by_url = {entry.url_canonical.rsplit("/", 1)[-1]: entry for entry in parse("dates_broken.xml").entries}
+    by_url = {
+        entry.url_canonical.rsplit("/", 1)[-1]: entry for entry in parse("dates_broken.xml").entries
+    }
 
     # pubDate absent -> fetched_at
     assert by_url["a-sans-date"].date_source == "fetched"
@@ -126,7 +128,8 @@ def test_broken_dates_use_the_documented_fallbacks() -> None:
 
 def test_fallback_dates_are_flagged_not_hidden() -> None:
     fallbacks = [e for e in parse("dates_broken.xml").entries if e.date_source == "fetched"]
-    assert len(fallbacks) == 3
+    # a-sans-date, d-illisible, e-epoch, f-futur-lointain
+    assert len(fallbacks) == 4
 
 
 # ---------------------------------------------------------------- XML tronque
@@ -140,8 +143,9 @@ def test_truncated_xml_raises_cleanly() -> None:
 def test_truncated_fixture_actually_triggers_the_rule() -> None:
     """Verifie que la fixture est bien construite : feedparser doit signaler une
     erreur SAX ou ne rendre aucune entree. Sans ca le test precedent ne teste rien."""
-    import feedparser
     from xml.sax import SAXException
+
+    import feedparser
 
     parsed = feedparser.parse(read_fixture("truncated.xml"))
     assert parsed.get("bozo")
