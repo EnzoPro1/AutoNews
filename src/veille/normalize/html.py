@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import nh3
 
-from veille.normalize.text import fix_double_escaping, normalize_ws
+from veille.normalize.text import fix_double_escaping, normalize_ws, unescape_text
 
 #: Allowlist stricte : mise en forme minimale, aucun media, aucun conteneur
 #: exploitable pour du CSS d'exfiltration. Ni <img>, ni <iframe>, ni <style>.
@@ -65,7 +65,15 @@ def sanitize(raw: str | None) -> str | None:
 
 
 def strip_tags(value: str | None) -> str:
-    """Texte brut d'un fragment HTML, blancs normalises. Sert au hash de contenu."""
+    """Texte brut d'un fragment HTML, blancs normalises.
+
+    nh3 produit du HTML : en retirant les balises il ECHAPPE le texte restant
+    (`&` devient `&amp;`, l'insecable devient `&nbsp;`). Sans le desechappement
+    final, Jinja echapperait une seconde fois et la page afficherait `&amp;` en
+    toutes lettres. La sortie est du texte, jamais reinjectee comme du balisage :
+    elle alimente le hash de contenu et l'extrait, tous deux echappes au rendu.
+    """
     if not value:
         return ""
-    return normalize_ws(nh3.clean(value, tags=set(), attributes={}, strip_comments=True))
+    stripped = nh3.clean(value, tags=set(), attributes={}, strip_comments=True)
+    return normalize_ws(unescape_text(stripped))

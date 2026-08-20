@@ -92,6 +92,15 @@ def test_strip_tags() -> None:
     assert strip_tags("") == ""
 
 
+def test_strip_tags_returns_real_text_not_escaped_html() -> None:
+    """nh3 echappe le texte qu'il conserve : sans desechappement, la page
+    afficherait `&amp;` et `&nbsp;` en toutes lettres."""
+    assert strip_tags("<p>Python &amp; JavaScript</p>") == "Python & JavaScript"
+    assert strip_tags("<p>Fnac & Darty</p>") == "Fnac & Darty"
+    assert "&nbsp;" not in strip_tags("<p>il y&nbsp;a</p>")
+    assert "&" not in strip_tags("<p>&laquo; cite &raquo;</p>")
+
+
 def test_normalize_ws() -> None:
     assert normalize_ws("  a \n\t b  ") == "a b"
 
