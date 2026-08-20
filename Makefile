@@ -15,13 +15,14 @@ logs:
 test:          ## Suite complete, y compris les tests marques @pytest.mark.db
 	$(COMPOSE) run --rm app pytest
 
+# --entrypoint "" : le lint n'a pas besoin des migrations ni du seed.
 lint:          ## Exactement ce que fait la CI
-	$(COMPOSE) run --rm app ruff check .
-	$(COMPOSE) run --rm app ruff format --check .
+	$(COMPOSE) run --rm --no-deps --entrypoint "" app ruff check .
+	$(COMPOSE) run --rm --no-deps --entrypoint "" app ruff format --check .
 
 fmt:
-	$(COMPOSE) run --rm app ruff format .
-	$(COMPOSE) run --rm app ruff check --fix .
+	$(COMPOSE) run --rm --no-deps --entrypoint "" app ruff format .
+	$(COMPOSE) run --rm --no-deps --entrypoint "" app ruff check --fix .
 
 seed:          ## Resynchronise feeds.yaml vers la table feed
 	$(COMPOSE) exec app python -m veille seed
