@@ -160,4 +160,4 @@ def test_host_transformation_is_logged(caplog: pytest.LogCaptureFixture) -> None
     """Seul cas ou la canonicalisation peut produire une URL morte : on trace."""
     with caplog.at_level("WARNING", logger="veille.normalize.urls"):
         canonicalize_url("https://m.example.com/a")
-    assert any("host transforme" in record.message for record in caplog.records)
+    assert any("host transforme" in record.getMessage() for record in caplog.records)
