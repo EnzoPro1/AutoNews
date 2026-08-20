@@ -20,11 +20,14 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+#: Tables installees par une extension : Alembic ne doit pas proposer de les
+#: supprimer lors d'un autogenerate.
+EXTENSION_TABLES = {"vector"}
+
+
 def include_object(obj, name, type_, reflected, compare_to):
     """Ignore les objets crees par des extensions (pgvector, etc.)."""
-    if type_ == "table" and name in {"vector"}:
-        return False
-    return True
+    return not (type_ == "table" and name in EXTENSION_TABLES)
 
 
 def run_migrations_offline() -> None:

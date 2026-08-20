@@ -58,9 +58,7 @@ def _ingest_one(
 ) -> FeedRunOutcome:
     feed_id = feed.id
     etag, last_modified = feed.etag, feed.last_modified
-    outcome = FeedRunOutcome(
-        feed_id=feed_id, feed_slug=spec.id, started_at=datetime.now(tz=UTC)
-    )
+    outcome = FeedRunOutcome(feed_id=feed_id, feed_slug=spec.id, started_at=datetime.now(tz=UTC))
 
     try:
         fetched = fetch_feed(spec, etag=etag, last_modified=last_modified, client=client)
@@ -70,7 +68,7 @@ def _ingest_one(
             outcome.status = "not_modified"
             logger.info("%s : inchange", spec.id)
         else:
-            assert fetched.body is not None  # noqa: S101 - garanti par fetch_feed
+            assert fetched.body is not None  # garanti par fetch_feed
             parsed = parse_feed(fetched.body, fetched_at=fetched.fetched_at)
             stored = store_entries(
                 session, feed_id=feed_id, entries=parsed.entries, now=fetched.fetched_at
@@ -100,7 +98,7 @@ def _ingest_one(
             outcome.http_status = exc.http_status
         logger.warning("%s : echec (%s)", spec.id, exc)
 
-    except Exception as exc:  # noqa: BLE001 - un flux ne doit jamais tuer le run
+    except Exception as exc:  # un flux ne doit jamais tuer le run
         session.rollback()
         outcome.status = "error"
         outcome.error_message = f"{type(exc).__name__}: {exc}"

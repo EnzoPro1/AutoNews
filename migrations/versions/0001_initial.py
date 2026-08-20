@@ -41,8 +41,12 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("etag", sa.Text(), nullable=True),
         sa.Column("last_modified", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_feed"),
         sa.UniqueConstraint("slug", name="uq_feed_slug"),
         sa.UniqueConstraint("url", name="uq_feed_url"),
@@ -117,9 +121,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["feed_id"], ["feed.id"], name="fk_feed_run_feed", ondelete="CASCADE"
         ),
-        sa.CheckConstraint(
-            "status IN ('ok', 'not_modified', 'error')", name="ck_feed_run_status"
-        ),
+        sa.CheckConstraint("status IN ('ok', 'not_modified', 'error')", name="ck_feed_run_status"),
     )
     op.create_index("ix_feed_run_feed_started", "feed_run", ["feed_id", "started_at"])
 

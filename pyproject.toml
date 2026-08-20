@@ -40,6 +40,11 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "C4", "DTZ"]
 
+[tool.ruff.lint.isort]
+# conftest est importe par chemin depuis tests/ : il appartient au projet, pas
+# aux dependances tierces.
+known-first-party = ["veille", "conftest"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501"]
 "migrations/*" = ["E501", "I001"]

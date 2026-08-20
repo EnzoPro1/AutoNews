@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from conftest import NOW, make_feed, read_fixture
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from conftest import NOW, make_feed, read_fixture
 from veille.ingest.parse import parse_feed
 from veille.ingest.store import store_entries
 from veille.models import Article, ArticleFeed, Feed

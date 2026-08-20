@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from conftest import make_feed, make_spec, read_fixture
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from conftest import make_feed, make_spec, read_fixture
 from veille.ingest.pipeline import run_ingestion
 from veille.models import Article, Feed, FeedRun
 from veille.seed import seed_feeds
@@ -51,12 +51,11 @@ def counts(session: Session, model) -> int:
 
 def last_runs(session: Session) -> dict[str, FeedRun]:
     rows = session.execute(select(Feed.slug, FeedRun).join(FeedRun, FeedRun.feed_id == Feed.id))
-    return {slug: run for slug, run in rows}
+    # .all() est necessaire : dict() sur un Result le prendrait pour un mapping.
+    return dict(rows.all())
 
 
-def test_a_failing_feed_does_not_stop_the_others(
-    session: Session, three_feeds: list[Feed]
-) -> None:
+def test_a_failing_feed_does_not_stop_the_others(session: Session, three_feeds: list[Feed]) -> None:
     routes = {
         "https://sain.test/feed.xml": ok("rss20_ok.xml"),
         "https://casse.test/feed.xml": ok("truncated.xml"),
@@ -150,7 +149,9 @@ def test_validators_are_stored_then_replayed(session: Session, three_feeds: list
     assert outcomes[0].http_status == 304
 
 
-def test_not_modified_writes_a_run_and_no_article(session: Session, three_feeds: list[Feed]) -> None:
+def test_not_modified_writes_a_run_and_no_article(
+    session: Session, three_feeds: list[Feed]
+) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(304)
 
