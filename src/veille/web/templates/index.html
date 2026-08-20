@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}veille — articles{% endblock %}
+
+{% block content %}
+{# Aucun |safe dans ce fichier : tout le contenu venant des flux est echappe
+   par Jinja. Le resume passe par le filtre `excerpt` qui rend du texte brut. #}
+<form class="filters" method="get" action="/">
+  <label>
+    Langue
+    <select name="lang">
+      <option value="" {% if not lang %}selected{% endif %}>toutes</option>
+      <option value="fr" {% if lang == 'fr' %}selected{% endif %}>français</option>
+      <option value="en" {% if lang == 'en' %}selected{% endif %}>anglais</option>
+    </select>
+  </label>
+  <label>
+    Thème
+    <select name="topic">
+      <option value="" {% if not topic %}selected{% endif %}>tous</option>
+      <option value="ai" {% if topic == 'ai' %}selected{% endif %}>IA</option>
+      <option value="sec" {% if topic == 'sec' %}selected{% endif %}>Cyber</option>
+      <option value="both" {% if topic == 'both' %}selected{% endif %}>mixtes</option>
+    </select>
+  </label>
+  <button type="submit">Filtrer</button>
+  <span class="count">{{ page.total }} article{{ 's' if page.total > 1 else '' }}</span>
+</form>
+
+{% if not page.rows %}
+  <p class="empty">Aucun article. Lancer <code>python -m veille ingest</code>.</p>
+{% else %}
+<ul class="articles">
+  {% for row in page.rows %}
+  <li class="article">
+    <h2>
+      <a href="{{ row.article.url_canonical }}" rel="noopener noreferrer" target="_blank">
+        {{ row.article.title }}
+      </a>
+    </h2>
+
+    <p class="meta">
+      <span class="source">{{ row.feed.name }}</span>
+      <time datetime="{{ row.article.published_at | datetime_attr }}"
+            title="{{ row.article.published_at | absolute_date }}">
+        {{ row.article.published_at | relative_date(now) }}
+      </time>
+      {% if row.article.is_fallback %}
+        <span class="badge badge-warn" title="Le flux n'a fourni aucune date exploitable : date de collecte.">date approchée</span>
+      {% endif %}
+      <span class="badge badge-lang">{{ row.feed.lang | lang_label }}</span>
+      <span class="badge badge-topic">{{ row.feed.topic | topic_label }}</span>
+    </p>
+
+    {% set summary = row.article.summary_clean | excerpt %}
+    {% if summary %}
+      <p class="summary">{{ summary }}</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<nav class="pagination">
+  {% set base = '?' ~ ('lang=' ~ lang ~ '&' if lang else '') ~ ('topic=' ~ topic ~ '&' if topic else '') %}
+  {% if page.has_previous %}
+    <a href="{{ base }}page={{ page.page - 1 }}">← précédent</a>
+  {% endif %}
+  <span>page {{ page.page }} / {{ page.pages }}</span>
+  {% if page.has_next %}
+    <a href="{{ base }}page={{ page.page + 1 }}">suivant →</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% endblock %}

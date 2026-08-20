@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}veille — santé des flux{% endblock %}
+
+{% block content %}
+<h1>Santé du pipeline</h1>
+<p class="hint">Dernier run de chaque flux.</p>
+
+<div class="table-wrapper">
+<table class="feeds">
+  <thead>
+    <tr>
+      <th>Flux</th>
+      <th>Langue</th>
+      <th>Thème</th>
+      <th>Type</th>
+      <th>Dernier run</th>
+      <th>Statut</th>
+      <th>HTTP</th>
+      <th class="num">Nouveaux</th>
+      <th class="num">Vus</th>
+      <th class="num">Articles</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in health %}
+    <tr class="{{ 'inactive' if not item.feed.is_active }}">
+      <td>
+        <span class="slug">{{ item.feed.slug }}</span>
+        <span class="name">{{ item.feed.name }}</span>
+        {% if not item.feed.is_active %}<span class="badge badge-warn">désactivé</span>{% endif %}
+      </td>
+      <td>{{ item.feed.lang | lang_label }}</td>
+      <td>{{ item.feed.topic | topic_label }}</td>
+      <td>{{ item.feed.source_type | source_label }}</td>
+      <td>
+        {% if item.last_run %}
+          <time datetime="{{ item.last_run.started_at | datetime_attr }}"
+                title="{{ item.last_run.started_at | absolute_date }}">
+            {{ item.last_run.started_at | relative_date(now) }}
+          </time>
+        {% else %}
+          <span class="never">jamais</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if item.last_run %}
+          <span class="status status-{{ item.last_run.status }}">{{ item.last_run.status }}</span>
+        {% else %}
+          <span class="status status-never">—</span>
+        {% endif %}
+      </td>
+      <td>{{ item.last_run.http_status if item.last_run and item.last_run.http_status else '—' }}</td>
+      <td class="num">{{ item.last_run.n_new if item.last_run else '—' }}</td>
+      <td class="num">{{ item.last_run.n_seen if item.last_run else '—' }}</td>
+      <td class="num">{{ item.n_articles }}</td>
+      <td class="message">{{ item.last_run.error_message if item.last_run and item.last_run.error_message else '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if not health %}
+  <p class="empty">Aucun flux en base. Lancer <code>python -m veille seed</code>.</p>
+{% endif %}
+{% endblock %}
