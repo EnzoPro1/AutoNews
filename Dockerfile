@@ -6,6 +6,15 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 WORKDIR /app
 
+# CA racine supplementaires. Le dossier est vide dans le depot : sans .crt,
+# update-ca-certificates ne fait rien. Utile uniquement quand un antivirus ou un
+# proxy intercepte le TLS sur la machine de build (cf docker/extra-ca/README.md).
+COPY docker/extra-ca/ /usr/local/share/ca-certificates/extra/
+RUN update-ca-certificates > /dev/null 2>&1 || true
+# pip utilise certifi par defaut : on le pointe explicitement vers le magasin
+# systeme, sinon la CA ajoutee ci-dessus resterait ignoree.
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
+
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 

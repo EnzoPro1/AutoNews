@@ -9,3 +9,6 @@ dist/
 build/
 .env
 .coverage
+
+# CA d interception locale (Avast, proxy d entreprise) : jamais versionnee
+docker/extra-ca/*.crt
