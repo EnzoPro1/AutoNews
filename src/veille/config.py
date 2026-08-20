@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     http_timeout: float = 15.0
     http_max_attempts: int = 2
 
+    #: Bundle CA a utiliser pour les requetes sortantes. None = certifi, le
+    #: comportement par defaut. A renseigner uniquement quand un antivirus ou un
+    #: proxy intercepte le TLS : httpx passe par certifi et ignore le magasin
+    #: systeme, donc PIP_CERT ne suffit pas cote execution.
+    ca_bundle: str | None = None
+
     feeds_path: Path = Path("/app/feeds.yaml")
     log_level: str = "INFO"
 

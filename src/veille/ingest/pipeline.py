@@ -15,9 +15,8 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from veille.config import settings
 from veille.errors import FetchError, VeilleError
-from veille.ingest.fetch import fetch_feed
+from veille.ingest.fetch import build_client, fetch_feed
 from veille.ingest.parse import parse_feed
 from veille.ingest.store import store_entries
 from veille.models import Feed, FeedRun
@@ -34,9 +33,7 @@ def run_ingestion(
 ) -> list[FeedRunOutcome]:
     """Ingere chaque flux de `specs`. Ne leve jamais a cause d'un flux."""
     owns_client = client is None
-    client = client or httpx.Client(
-        timeout=httpx.Timeout(settings.http_timeout), follow_redirects=True
-    )
+    client = client or build_client()
 
     outcomes: list[FeedRunOutcome] = []
     try:

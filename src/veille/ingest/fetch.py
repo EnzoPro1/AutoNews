@@ -49,10 +49,7 @@ def fetch_feed(
         headers["If-Modified-Since"] = last_modified
 
     owns_client = client is None
-    client = client or httpx.Client(
-        timeout=httpx.Timeout(settings.http_timeout),
-        follow_redirects=True,
-    )
+    client = client or build_client()
     try:
         response = _request_with_retries(client, spec, headers)
     finally:
@@ -88,6 +85,15 @@ def fetch_feed(
         # On conserve les validateurs verbatim : les reformater casse les 304.
         etag=response.headers.get("etag"),
         last_modified=response.headers.get("last-modified"),
+    )
+
+
+def build_client() -> httpx.Client:
+    """Client HTTP du projet. Seule fabrique : fetch et pipeline passent par elle."""
+    return httpx.Client(
+        timeout=httpx.Timeout(settings.http_timeout),
+        follow_redirects=True,
+        verify=settings.ca_bundle or True,
     )
 
 

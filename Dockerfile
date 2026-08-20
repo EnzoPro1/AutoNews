@@ -39,6 +39,11 @@ WORKDIR /app
 COPY --from=builder /venv /venv
 COPY --from=builder /app /app
 
+# Meme point d'injection cote execution : httpx passe par certifi et ignore le
+# magasin systeme, mais VEILLE_CA_BUNDLE peut le pointer vers ce fichier.
+COPY docker/extra-ca/ /usr/local/share/ca-certificates/extra/
+RUN update-ca-certificates > /dev/null 2>&1 || true
+
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 COPY feeds.yaml ./feeds.yaml
