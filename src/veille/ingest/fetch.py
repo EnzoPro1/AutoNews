@@ -93,8 +93,20 @@ def build_client() -> httpx.Client:
     return httpx.Client(
         timeout=httpx.Timeout(settings.http_timeout),
         follow_redirects=True,
-        verify=settings.ca_bundle or True,
+        verify=verify_option(),
     )
+
+
+def verify_option() -> str | bool:
+    """Valeur passee a httpx pour la verification TLS. JAMAIS False.
+
+    VEILLE_CA_BUNDLE ne sert qu'a designer un autre magasin de confiance, jamais
+    a s'en passer : une valeur vide retombe sur la verification complete, et une
+    valeur qui ne designe aucun fichier fait echouer la requete bruyamment. Il
+    n'existe aucun chemin de configuration qui desactive TLS en silence.
+    """
+    bundle = (settings.ca_bundle or "").strip()
+    return bundle or True
 
 
 def _request_with_retries(

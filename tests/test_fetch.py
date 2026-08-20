@@ -5,8 +5,9 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from veille.config import settings
 from veille.errors import FetchError
-from veille.ingest.fetch import fetch_feed
+from veille.ingest.fetch import fetch_feed, verify_option
 from veille.schemas import FeedSpec
 
 SPEC = FeedSpec(
@@ -147,3 +148,34 @@ def test_empty_body_is_an_error() -> None:
 
     with client_for(handler) as client, pytest.raises(FetchError):
         fetch_feed(SPEC, client=client)
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (None, True),
+        ("", True),
+        ("   ", True),
+        # Valeurs "fausses" plausibles : elles deviennent des chemins invalides,
+        # donc la requete echoue bruyamment. Elles ne desactivent rien.
+        ("0", "0"),
+        ("false", "false"),
+        ("/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/certs/ca-certificates.crt"),
+    ],
+)
+def test_no_configuration_value_can_disable_tls_verification(
+    monkeypatch: pytest.MonkeyPatch, configured: str | None, expected: object
+) -> None:
+    """VEILLE_CA_BUNDLE designe un autre magasin de confiance, il ne permet
+    jamais de s'en passer. Un projet dont l'argument est la securite ne doit pas
+    offrir de contournement TLS silencieux."""
+    monkeypatch.setattr(settings, "ca_bundle", configured)
+    resolved = verify_option()
+    assert resolved is not False
+    assert resolved == expected
+
+
+def test_ca_bundle_is_unset_by_default() -> None:
+    """Le defaut est la verification standard via certifi : le bundle
+    supplementaire est une exception locale, pas la configuration du projet."""
+    assert type(settings).model_fields["ca_bundle"].default is None
