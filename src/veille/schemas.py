@@ -93,6 +93,8 @@ class FeedRunOutcome:
     """Ce que le pipeline ecrit dans feed_run pour un flux."""
 
     feed_id: int
+    #: slug du flux, pour l'affichage CLI ; feed_run ne stocke que feed_id.
+    feed_slug: str
     started_at: datetime
     finished_at: datetime | None = None
     status: RunStatus = "ok"
