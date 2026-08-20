@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Flux coupe en plein vol</title>
+    <link>https://exemple-tronque.test/</link>
+    <description>Le transfert a ete interrompu au milieu d un item.</description>
+    <item>
+      <title>Premier article complet</title>
+      <link>https://exemple-tronque.test/un</link>
+      <pubDate>Wed, 19 Aug 2026 08:30:00 +0000</pubDate>
+      <description>Celui-la est entier.</description>
+    </item>
+    <item>
+      <title>Deuxieme article, coupe ici

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en-us">
+  <title>Test Atom Feed</title>
+  <link href="https://exemple-atom.test/" rel="alternate" type="text/html"/>
+  <id>https://exemple-atom.test/</id>
+  <updated>2026-08-19T10:00:00+00:00</updated>
+  <entry>
+    <title>Notes on running local models</title>
+    <link href="https://exemple-atom.test/2026/08/local-models" rel="alternate" type="text/html"/>
+    <id>tag:exemple-atom.test,2026:entry-1</id>
+    <published>2026-08-19T09:15:00+00:00</published>
+    <updated>2026-08-19T09:45:00+00:00</updated>
+    <author><name>Simon Test</name></author>
+    <summary type="html">&lt;p&gt;Short teaser with a &lt;a href="https://exemple-atom.test/ref"&gt;link&lt;/a&gt;.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <title>Only an updated date here</title>
+    <link href="https://exemple-atom.test/2026/08/updated-only" rel="alternate" type="text/html"/>
+    <id>tag:exemple-atom.test,2026:entry-2</id>
+    <updated>2026-08-18T22:00:00+00:00</updated>
+    <content type="html">&lt;p&gt;Full content in a content element.&lt;/p&gt;</content>
+  </entry>
+</feed>

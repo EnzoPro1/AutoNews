@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Flux hostile</title>
+    <link>https://exemple-hostile.test/</link>
+    <description>Contenu non fiable : script, gestionnaire d evenement, commentaire.</description>
+    <item>
+      <title>Article pi&amp;eacute;g&amp;eacute;</title>
+      <link>https://exemple-hostile.test/piege</link>
+      <guid isPermaLink="false">urn:hostile:1</guid>
+      <pubDate>Wed, 19 Aug 2026 08:30:00 +0000</pubDate>
+      <description>&lt;p&gt;Texte l&amp;eacute;gitime.&lt;/p&gt;&lt;!-- commentaire cache --&gt;&lt;script&gt;alert('xss')&lt;/script&gt;&lt;img src="x" onerror="alert(1)"&gt;&lt;a href="javascript:alert(2)"&gt;clic&lt;/a&gt;</description>
+    </item>
+    <item>
+      <title>Sans resume exploitable</title>
+      <link>https://exemple-hostile.test/sans-resume</link>
+      <guid isPermaLink="false">urn:hostile:2</guid>
+      <pubDate>Wed, 19 Aug 2026 07:30:00 +0000</pubDate>
+      <description>&lt;script&gt;alert(3)&lt;/script&gt;</description>
+    </item>
+  </channel>
+</rss>

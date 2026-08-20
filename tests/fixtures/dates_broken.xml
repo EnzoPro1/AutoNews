@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Flux aux dates chaotiques</title>
+    <link>https://exemple-dates.test/</link>
+    <description>pubDate absent, non standard, sans fuseau, dans le futur, a l epoch.</description>
+    <item>
+      <title>Aucune date du tout</title>
+      <link>https://exemple-dates.test/a-sans-date</link>
+      <guid isPermaLink="false">urn:dates:1</guid>
+      <description>Pas de pubDate dans cet item.</description>
+    </item>
+    <item>
+      <title>Date au format maison</title>
+      <link>https://exemple-dates.test/b-format-maison</link>
+      <guid isPermaLink="false">urn:dates:2</guid>
+      <pubDate>19/08/2026 08:30:00</pubDate>
+      <description>Format francais non standard.</description>
+    </item>
+    <item>
+      <title>Date sans fuseau horaire</title>
+      <link>https://exemple-dates.test/c-sans-fuseau</link>
+      <guid isPermaLink="false">urn:dates:3</guid>
+      <pubDate>2026-08-18 07:00:00</pubDate>
+      <description>Fuseau absent, interprete en UTC.</description>
+    </item>
+    <item>
+      <title>Date completement illisible</title>
+      <link>https://exemple-dates.test/d-illisible</link>
+      <guid isPermaLink="false">urn:dates:4</guid>
+      <pubDate>la semaine derniere</pubDate>
+      <description>pubDate qui n est pas une date.</description>
+    </item>
+    <item>
+      <title>Date a l epoch</title>
+      <link>https://exemple-dates.test/e-epoch</link>
+      <guid isPermaLink="false">urn:dates:5</guid>
+      <pubDate>Thu, 01 Jan 1970 00:00:00 +0000</pubDate>
+      <description>Timestamp a zero.</description>
+    </item>
+    <item>
+      <title>Date reellement dans le futur</title>
+      <link>https://exemple-dates.test/f-futur-lointain</link>
+      <guid isPermaLink="false">urn:dates:6</guid>
+      <pubDate>Fri, 19 Aug 2129 08:30:00 +0000</pubDate>
+      <description>Cent ans d avance.</description>
+    </item>
+  </channel>
+</rss>

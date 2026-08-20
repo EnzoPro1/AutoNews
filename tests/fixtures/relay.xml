@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Agregateur qui relaie</title>
+    <link>https://exemple-relais.test/</link>
+    <description>Relaie un article deja publie ailleurs, sous un autre guid et une autre URL brute.</description>
+    <item>
+      <title>Une faille critique dans un routeur repandu</title>
+      <link>https://exemple-sain.test/2026/08/faille-routeur/?fbclid=IwAR9#commentaires</link>
+      <guid isPermaLink="false">https://exemple-relais.test/item?id=90210</guid>
+      <pubDate>Wed, 19 Aug 2026 10:00:00 +0000</pubDate>
+      <description>Relaye par un agregateur.</description>
+    </item>
+    <item>
+      <title>Un sujet propre a ce flux</title>
+      <link>https://exemple-relais.test/2026/08/exclusif</link>
+      <guid isPermaLink="false">https://exemple-relais.test/item?id=90211</guid>
+      <pubDate>Wed, 19 Aug 2026 11:00:00 +0000</pubDate>
+      <description>Article que seul ce flux publie.</description>
+    </item>
+  </channel>
+</rss>
