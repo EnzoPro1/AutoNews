@@ -173,8 +173,14 @@ def test_hostile_summary_is_sanitised_at_parse_time() -> None:
     assert "<!--" not in cleaned
     assert "javascript:" not in cleaned.lower()
     assert "Texte légitime" in cleaned
-    # l'original est conserve tel quel pour audit
-    assert "<script>" in (first.raw_summary or "")
+    # L'original est conserve tel quel pour audit. C'est aussi ce qui garantit
+    # que nh3 recoit la charge : avec l'assainisseur de feedparser actif, il ne
+    # voyait qu'un fragment deja desamorce et ces assertions passaient sans rien
+    # exercer.
+    raw = first.raw_summary or ""
+    assert "<script>alert('xss')</script>" in raw
+    assert 'onerror="alert(1)"' in raw
+    assert 'href="javascript:alert(2)"' in raw
 
 
 def test_summary_is_none_when_nothing_survives() -> None:

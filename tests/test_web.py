@@ -2,27 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import veille.web.app
 from conftest import NOW, make_feed, read_fixture
 from veille.ingest.parse import parse_feed
 from veille.ingest.store import store_entries
 from veille.models import Article, Feed, FeedRun
-from veille.web.app import app
 from veille.web.filters import excerpt, relative_date, to_paris
 
 pytestmark = pytest.mark.db
-
-
-@pytest.fixture
-def client(session: Session) -> Iterator[TestClient]:
-    with TestClient(app) as test_client:
-        yield test_client
 
 
 def ingest(session: Session, feed: Feed, fixture: str, when=NOW) -> None:
@@ -182,6 +177,82 @@ def test_feed_html_never_reaches_the_page_as_markup(session: Session, client: Te
     assert "<script>alert" not in body
     assert "onerror=" not in body
     assert "javascript:alert" not in body
+
+
+PIEGE_URL = "https://exemple-hostile.test/piege"
+
+
+def test_xss_payload_is_removed_by_nh3_not_merely_escaped(
+    session: Session, client: TestClient
+) -> None:
+    """La chaine complete : brut stocke -> nh3 -> summary_clean -> page.
+
+    Un simple echappement Jinja rendrait la page inoffensive tout en laissant
+    `&lt;script&gt;alert(...)&lt;/script&gt;` visible en toutes lettres dans
+    l'extrait. Ce test exige que la charge ait DISPARU, pas qu'elle soit inerte.
+    """
+    ingest(session, make_feed(session, "hostile"), "hostile.xml")
+    article = session.scalar(select(Article).where(Article.url_canonical == PIEGE_URL))
+    assert article is not None
+
+    # 1. le brut conserve porte bien la charge : c'est donc nh3 qui la retire,
+    #    et pas un assainisseur en amont dont personne n'aurait decide.
+    raw = article.raw_summary or ""
+    assert "<script>alert('xss')</script>" in raw
+    assert 'onerror="alert(1)"' in raw
+    assert 'href="javascript:alert(2)"' in raw
+    assert "<!-- commentaire cache -->" in raw
+
+    # 2. la colonne rendue est passee par l'allowlist nh3
+    clean = (article.summary_clean or "").lower()
+    assert "script" not in clean
+    assert "onerror" not in clean
+    assert "javascript:" not in clean
+    assert "<img" not in clean
+    assert "<!--" not in clean
+
+    # 3. la page ne contient la charge sous AUCUNE forme, pas meme echappee
+    body = client.get("/").text
+    assert "&lt;script&gt;" not in body
+    assert "alert(" not in body
+    assert "onerror" not in body.lower()
+    assert "commentaire cache" not in body
+    assert "Texte légitime" in body
+
+
+def test_the_template_reads_summary_clean_and_never_raw_summary() -> None:
+    """Invariant 5, verifie sur la source des templates.
+
+    Volontairement structurel : `excerpt` reexecute nh3 via strip_tags, donc
+    afficher raw_summary donnerait AUJOURD'HUI exactement le meme texte a
+    l'ecran. Aucune assertion de sortie ne peut donc distinguer les deux
+    colonnes, et c'est precisement le piege : nh3 ecrirait une colonne que
+    personne ne lit, et le jour ou une vue detail ajoutera |safe sur
+    summary_clean, elle basculerait sur un chemin jamais exerce.
+    """
+    templates = (Path(veille.web.app.__file__).parent / "templates").glob("*.html")
+    sources = {path.name: path.read_text(encoding="utf-8") for path in templates}
+    assert sources, "aucun template trouve"
+
+    index = sources["index.html"]
+    assert "summary_clean | excerpt" in index or "summary_clean|excerpt" in index
+
+    for name, source in sources.items():
+        assert "raw_summary" not in source, f"{name} lit raw_summary"
+        # `|safe` sur du contenu de flux : interdit tant qu'aucune vue detail ne
+        # le justifie explicitement.
+        assert "|safe" not in source.replace("Aucun |safe", "")
+        assert "| safe" not in source
+
+
+def test_summary_clean_is_what_gets_displayed(session: Session, client: TestClient) -> None:
+    ingest(session, make_feed(session, "hostile"), "hostile.xml")
+    article = session.scalar(select(Article).where(Article.url_canonical == PIEGE_URL))
+    assert article is not None
+    assert article.summary_clean != article.raw_summary
+
+    body = client.get("/").text
+    assert excerpt(article.summary_clean) in body
 
 
 def test_article_without_summary_renders_no_empty_block(
