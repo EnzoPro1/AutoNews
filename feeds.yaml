@@ -1,0 +1,104 @@
+# Source de verite des flux. Versionne : ni en base, ni en dur dans le code.
+# `python -m veille seed` synchronise ce fichier vers la table `feed`.
+#
+# Champs :
+#   id           slug stable, cle fonctionnelle (CLI : --feed <id>). Un renommage
+#                est un UPDATE, pas une recreation : ne le change pas a la legere.
+#   name         libelle affiche
+#   url          URL du flux
+#   lang         fr | en
+#   topic        ai | sec | both        (un filtre ?topic=ai matche aussi 'both')
+#   source_type  media | vendor | official | community
+#
+# Toutes les URL ci-dessous ont ete verifiees en HTTP le 2026-08-19.
+
+feeds:
+  - id: cert-fr-avis
+    name: CERT-FR - Avis
+    url: https://www.cert.ssi.gouv.fr/avis/feed/
+    lang: fr
+    topic: sec
+    source_type: official
+
+  # FRAGILE : LeMagIT n'expose aucun <link rel="alternate"> et les URL usuelles
+  # (/rss/alaune.xml, /rss/toutes-les-actualites.xml, /rss.xml, /feed) renvoient 404.
+  # ContentSyndication.xml est le seul flux general publie sur https://www.lemagit.fr/rss
+  # (les deux autres, Projets-IT.xml et Conseils-IT.xml, sont des rubriques a 3-6 items).
+  # C'est un flux de syndication : il peut etre tronque ou retire sans preavis.
+  # Remplacant documente si celui-ci meurt, verifie 200 le 2026-08-19, NON ACTIVE :
+  #   https://www.zataz.com/feed/   (Zataz, fr, sec, media)
+  - id: lemagit
+    name: LeMagIT
+    url: https://www.lemagit.fr/rss/ContentSyndication.xml
+    lang: fr
+    topic: both
+    source_type: media
+
+  - id: next
+    name: Next
+    url: https://next.ink/feed/
+    lang: fr
+    topic: both
+    source_type: media
+
+  - id: bleepingcomputer
+    name: BleepingComputer
+    url: https://www.bleepingcomputer.com/feed/
+    lang: en
+    topic: sec
+    source_type: media
+
+  - id: thehackernews
+    name: The Hacker News
+    url: https://feeds.feedburner.com/TheHackersNews
+    lang: en
+    topic: sec
+    source_type: media
+
+  - id: krebs
+    name: Krebs on Security
+    url: https://krebsonsecurity.com/feed/
+    lang: en
+    topic: sec
+    source_type: community
+
+  - id: simonwillison
+    name: Simon Willison
+    url: https://simonwillison.net/atom/everything/
+    lang: en
+    topic: ai
+    source_type: community
+
+  - id: importai
+    name: Import AI
+    url: https://importai.substack.com/feed
+    lang: en
+    topic: ai
+    source_type: community
+
+  - id: actuia
+    name: Actu IA
+    url: https://www.actuia.com/feed/
+    lang: fr
+    topic: ai
+    source_type: media
+
+  # La front page HN (https://news.ycombinator.com/rss) n'est pas thematisee et
+  # ramenait du bruit startup/produit/politique qu'on ne sait pas filtrer en V0.
+  # hnrss.org expose le meme contenu avec un parametre q= (RSS 2.0 valide,
+  # Last-Modified present, <link> = URL externe, <guid> = fil HN).
+  # ATTENTION : hnrss.org est instable (502 et timeouts intermittents observes).
+  # Ces deux flux tomberont regulierement en statut `error` ; c'est le service, pas nous.
+  - id: hn-ai
+    name: Hacker News - AI (100+ points)
+    url: https://hnrss.org/newest?q=AI&points=100
+    lang: en
+    topic: ai
+    source_type: community
+
+  - id: hn-sec
+    name: Hacker News - cybersecurity
+    url: https://hnrss.org/newest?q=cybersecurity
+    lang: en
+    topic: sec
+    source_type: community
