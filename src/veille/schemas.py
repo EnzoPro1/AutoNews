@@ -113,3 +113,9 @@ class FeedRunOutcome:
     n_seen: int = 0
     error_message: str | None = None
     warnings: list[str] = field(default_factory=list)
+
+    #: Tri-etat de couverture. 'unknown' par defaut : tant qu'on n'a pas evalue,
+    #: on ne pretend pas qu'il n'y a pas de trou.
+    gap_status: GapStatus = "unknown"
+    oldest_in_page: datetime | None = None
+    prev_max_published: datetime | None = None
