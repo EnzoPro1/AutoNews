@@ -18,7 +18,7 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -29,20 +29,31 @@ INGEST_LOCK_KEY = 0x5645494C4C450001
 
 
 @contextmanager
-def advisory_lock(session: Session, key: int = INGEST_LOCK_KEY) -> Iterator[bool]:
+def advisory_lock(bind: Engine | Session, key: int = INGEST_LOCK_KEY) -> Iterator[bool]:
     """Tente de prendre le verrou. Rend True s'il est obtenu, False sinon.
 
-    Verrou de session : il est relache explicitement en sortie, et de toute
-    facon a la fermeture de la connexion si le processus meurt brutalement.
-    C'est ce qu'on veut sur un laptop qui s'eteint sans prevenir -- un verrou
+    Le verrou est pris sur une connexion DEDIEE, ouverte pour la duree du bloc,
+    et surtout pas sur la Session du pipeline. Un verrou consultatif de session
+    vit sur la connexion : or `session.commit()` rend la connexion au pool, et
+    le pipeline commite apres chaque flux. Le verrou serait alors abandonne sur
+    une connexion rendue au pool pendant que le deverrouillage s'executerait sur
+    une autre -- il ne serait jamais relache, et l'ingestion suivante se
+    croirait en concurrence avec elle-meme. Symptome constate avant correction :
+    sept tests d'integration echouant en IngestLockedError.
+
+    La connexion dediee garantit aussi la liberation a la mort du processus,
+    ce qu'on veut sur un laptop qui s'eteint sans prevenir : un verrou
     persistant bloquerait toutes les ingestions suivantes.
     """
-    acquired = bool(session.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": key}))
-    if not acquired:
-        logger.warning("verrou d'ingestion deja pris, ce n'est pas une panne")
+    engine = bind.get_bind() if isinstance(bind, Session) else bind
+    connection = engine.connect()
+    acquired = False
     try:
+        acquired = bool(connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": key}))
+        if not acquired:
+            logger.warning("verrou d'ingestion deja pris, ce n'est pas une panne")
         yield acquired
     finally:
         if acquired:
-            session.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
-            session.commit()
+            connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
+        connection.close()

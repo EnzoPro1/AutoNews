@@ -178,7 +178,7 @@ def test_deux_pipelines_concurrents_le_second_sort_proprement(session: Session) 
 
     autre = SessionLocal()
     try:
-        with advisory_lock(autre) as tenu:
+        with advisory_lock(autre.get_bind()) as tenu:
             assert tenu, "la premiere session prend le verrou"
 
             avant = count(session, FeedRun)
@@ -197,7 +197,7 @@ def test_le_chevauchement_est_trace_dans_missed_run_pas_dans_feed_run(session: S
 
     autre = SessionLocal()
     try:
-        with advisory_lock(autre) as tenu:
+        with advisory_lock(autre.get_bind()) as tenu:
             assert tenu
             with serving(b"") as client, pytest.raises(IngestLockedError):
                 run_ingestion(session, [SPEC], client=client)
@@ -215,7 +215,7 @@ def test_le_verrou_est_relache_en_sortie(session: Session) -> None:
 
     autre = SessionLocal()
     try:
-        with advisory_lock(autre) as encore:
+        with advisory_lock(autre.get_bind()) as encore:
             assert encore, "le verrou doit etre reprenable apres liberation"
     finally:
         autre.close()
@@ -228,7 +228,7 @@ def test_le_verrou_est_relache_meme_si_le_corps_leve(session: Session) -> None:
 
     autre = SessionLocal()
     try:
-        with advisory_lock(autre) as encore:
+        with advisory_lock(autre.get_bind()) as encore:
             assert encore
     finally:
         autre.close()
@@ -241,7 +241,7 @@ def test_une_ingestion_normale_prend_et_rend_le_verrou(session: Session) -> None
 
     autre = SessionLocal()
     try:
-        with advisory_lock(autre) as encore:
+        with advisory_lock(autre.get_bind()) as encore:
             assert encore, "le verrou ne doit pas rester pris apres un run reussi"
     finally:
         autre.close()
