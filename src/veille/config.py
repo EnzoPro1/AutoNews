@@ -28,5 +28,16 @@ class Settings(BaseSettings):
 
     page_size: int = 50
 
+    #: Intervalle de la tache planifiee. /coverage en derive son seuil de trou
+    #: (2x cet intervalle) : il ne doit pas etre code en dur, sinon la page
+    #: devient fausse des que la frequence change.
+    #: Valeur deduite de la mesure de rotation : la page de BleepingComputer ne
+    #: couvre que ~26 h, 6 h laissent absorber trois runs manques consecutifs.
+    ingest_interval_hours: float = 6.0
+
+    #: Fichier d'attente des tentatives avortees, ecrit par l'enrobage PowerShell
+    #: quand la base est injoignable, draine au run suivant.
+    missed_runs_path: Path = Path("/app/state/missed-runs.jsonl")
+
 
 settings = Settings()

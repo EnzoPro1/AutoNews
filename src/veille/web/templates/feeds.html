@@ -15,6 +15,7 @@
       <th>Type</th>
       <th>Dernier run</th>
       <th>Statut</th>
+      <th>Couverture</th>
       <th>HTTP</th>
       <th class="num">Nouveaux</th>
       <th class="num">Vus</th>
@@ -53,6 +54,12 @@
         {% else %}
           <span class="status status-never">—</span>
         {% endif %}
+      </td>
+      <td>
+        {% if item.last_run %}
+          <span class="gap gap-{{ item.last_run.gap_status }}"
+                title="{% if item.last_run.gap_status == 'suspected' %}Rien de connu entre {{ item.last_run.prev_max_published | absolute_date }} et {{ item.last_run.oldest_in_page | absolute_date }} : des items ont defile hors de la page.{% elif item.last_run.gap_status == 'unknown' %}Indeterminable sur ce run. Ne pas savoir n'est pas savoir qu'il n'y a pas de trou.{% else %}La page recouvre encore l'historique connu.{% endif %}">{{ item.last_run.gap_status | gap_label }}</span>
+        {% else %}<span class="never">—</span>{% endif %}
       </td>
       <td>{{ item.last_run.http_status if item.last_run and item.last_run.http_status else '—' }}</td>
       <td class="num">{{ item.last_run.n_new if item.last_run else '—' }}</td>

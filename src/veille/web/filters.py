@@ -3,7 +3,7 @@ ailleurs : la base ne contient que de l'UTC."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from veille.normalize.html import strip_tags
@@ -108,6 +108,34 @@ def error_kind_label(message: str | None) -> str:
     return ERROR_KIND_LABELS.get(error_kind(message), "")
 
 
+GAP_LABELS = {
+    "none": "aucun trou",
+    "suspected": "trou suspecte",
+    "unknown": "indetermine",
+}
+
+
+def gap_label(value: str | None) -> str:
+    return GAP_LABELS.get(value or "", "")
+
+
+def duration(value: timedelta | None) -> str:
+    """Duree lisible. Rend "-" pour None : une mesure absente ne doit pas
+    s'afficher comme une mesure nulle."""
+    if value is None:
+        return "—"
+    seconds = int(value.total_seconds())
+    if seconds < 60:
+        return f"{seconds} s"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} min"
+    hours = minutes / 60
+    if hours < 48:
+        return f"{hours:.1f} h".replace(".0 ", " ")
+    return f"{hours / 24:.1f} j".replace(".0 ", " ")
+
+
 def lang_label(value: str) -> str:
     return LANG_LABELS.get(value, value.upper())
 
@@ -125,6 +153,8 @@ FILTERS = {
     "datetime_attr": datetime_attr,
     "absolute_date": absolute_date,
     "relative_date": relative_date,
+    "duration": duration,
+    "gap_label": gap_label,
     "error_kind": error_kind,
     "error_kind_label": error_kind_label,
     "excerpt": excerpt,

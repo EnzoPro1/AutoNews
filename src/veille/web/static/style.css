@@ -157,6 +157,24 @@ table.feeds .never { color: var(--muted); }
   font-weight: 400;
 }
 
+.gap { font-size: .78rem; }
+.gap-none { color: var(--ok); }
+/* 'unknown' est volontairement grisé et non vert : ne pas savoir n'est pas
+   savoir qu'il n'y a pas de trou. */
+.gap-unknown { color: var(--muted); }
+.gap-suspected { color: var(--error); font-weight: 600; }
+
+.badge-error { color: var(--error); border-color: currentColor; }
+table.feeds tr.ongoing td { background: color-mix(in srgb, var(--error) 8%, transparent); }
+
+.alert {
+  padding: .7rem .9rem;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+}
+
 footer {
   max-width: 62rem;
   margin: 0 auto;

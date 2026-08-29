@@ -61,7 +61,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from veille.db import SessionLocal  # noqa: E402
-from veille.models import Article, ArticleFeed, Feed, FeedRun  # noqa: E402
+from veille.models import Article, ArticleFeed, Feed, FeedRun, MissedRun  # noqa: E402
 from veille.schemas import FeedSpec  # noqa: E402
 from veille.web.app import app  # noqa: E402
 
@@ -115,7 +115,7 @@ def _database() -> None:
 def session(_database: None) -> Iterator[Session]:
     """Session isolee : tout est efface avant chaque test marque db."""
     with SessionLocal() as db:
-        for model in (ArticleFeed, FeedRun, Article, Feed):
+        for model in (ArticleFeed, FeedRun, MissedRun, Article, Feed):
             db.query(model).delete()
         db.commit()
         yield db

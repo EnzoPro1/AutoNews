@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from veille.config import settings
+from veille.web.coverage import build_coverage
 from veille.web.deps import get_session
 from veille.web.filters import FILTERS
 from veille.web.queries import feed_health, list_articles
@@ -57,4 +58,23 @@ def feeds(request: Request, session: SessionDep) -> HTMLResponse:
         request=request,
         name="feeds.html",
         context={"health": feed_health(session), "now": datetime.now(tz=UTC)},
+    )
+
+
+@app.get("/coverage", response_class=HTMLResponse)
+def coverage(request: Request, session: SessionDep) -> HTMLResponse:
+    """Sur quelle periode peut-on faire confiance a ces donnees ?
+
+    Le seuil de trou vient de la configuration (2x l'intervalle planifie) et
+    n'est pas code en dur : la page doit rester juste si la frequence change.
+    """
+    report = build_coverage(
+        session,
+        now=datetime.now(tz=UTC),
+        planned_interval=timedelta(hours=settings.ingest_interval_hours),
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="coverage.html",
+        context={"report": report, "now": report.now},
     )

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}veille — couverture{% endblock %}
+
+{% block content %}
+<h1>Couverture temporelle</h1>
+<p class="hint">
+  Sur quelle période peut-on faire confiance à ces données ? Intervalle planifié :
+  {{ report.planned_interval | duration }}. Une période sans run réussi au-delà de
+  {{ report.threshold | duration }} est comptée comme un trou.
+</p>
+
+{# Aucun pourcentage de couverture : un « 97 % » se lit comme une note et invite
+   à arrondir à « bon ». Uniquement des intervalles et des périodes datées. #}
+
+{% if report.n_feeds_with_ongoing_gap %}
+  <p class="alert">
+    <strong>{{ report.n_feeds_with_ongoing_gap }}</strong>
+    flux sur {{ report.feeds | length }} sont dans un trou <strong>en cours</strong> :
+    aucun run réussi depuis plus de {{ report.threshold | duration }}. La collecte est
+    à l'arrêt, les données s'arrêtent là où le dernier run s'est arrêté.
+  </p>
+{% endif %}
+
+<div class="table-wrapper">
+<table class="feeds">
+  <thead>
+    <tr>
+      <th>Flux</th>
+      <th class="num">Runs</th>
+      <th>Premier run</th>
+      <th>Dernier run</th>
+      <th class="num">Intervalle médian</th>
+      <th class="num">Pire intervalle</th>
+      <th class="num">Trous</th>
+      <th class="num">Trous suspectés</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in report.feeds %}
+    <tr class="{{ 'inactive' if not item.feed.is_active }}">
+      <td>
+        <span class="slug">{{ item.feed.slug }}</span>
+        {% if item.has_ongoing_gap %}
+          <span class="badge badge-error">trou en cours</span>
+        {% endif %}
+      </td>
+      <td class="num">{{ item.n_runs }}</td>
+      <td>
+        {% if item.first_run %}
+          <time datetime="{{ item.first_run | datetime_attr }}">{{ item.first_run | absolute_date }}</time>
+        {% else %}<span class="never">jamais</span>{% endif %}
+      </td>
+      <td>
+        {% if item.last_run %}
+          <time datetime="{{ item.last_run | datetime_attr }}"
+                title="{{ item.last_run | absolute_date }}">{{ item.last_run | relative_date(now) }}</time>
+        {% else %}<span class="never">jamais</span>{% endif %}
+      </td>
+      <td class="num">
+        {# Sur trop peu de runs une médiane n'a aucun sens et ne doit pas
+           pouvoir se lire comme si elle en avait. #}
+        {% if item.observed %}{{ item.median_interval | duration }}
+        {% else %}<span class="never" title="Moins de 3 runs : mesure sans signification.">—</span>{% endif %}
+      </td>
+      <td class="num">{{ item.worst_interval | duration }}</td>
+      <td class="num">{{ item.gaps | length }}</td>
+      <td class="num">{{ item.n_suspected }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>Périodes non couvertes</h2>
+{% set feeds_with_gaps = report.feeds | selectattr('gaps') | list %}
+{% if not feeds_with_gaps %}
+  <p class="empty">Aucune période sans run au-delà de {{ report.threshold | duration }}.</p>
+{% else %}
+<div class="table-wrapper">
+<table class="feeds">
+  <thead>
+    <tr>
+      <th>Flux</th><th>Depuis</th><th>Jusqu'à</th>
+      <th class="num">Durée</th><th class="num">Tentatives avortées</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in feeds_with_gaps %}
+      {% for gap in item.gaps %}
+      <tr class="{{ 'ongoing' if gap.ongoing }}">
+        <td><span class="slug">{{ item.feed.slug }}</span></td>
+        <td><time datetime="{{ gap.start | datetime_attr }}">{{ gap.start | absolute_date }}</time></td>
+        <td>
+          {% if gap.ongoing %}<strong>en cours</strong>
+          {% else %}<time datetime="{{ gap.end | datetime_attr }}">{{ gap.end | absolute_date }}</time>{% endif %}
+        </td>
+        <td class="num">{{ gap.duration | duration }}</td>
+        <td class="num">
+          {% if gap.missed_attempts %}{{ gap.missed_attempts }}
+          {% else %}<span class="never">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="hint">
+  « Tentatives avortées » compte les fois où l'ingestion a démarré mais n'a jamais
+  atteint la base — Docker éteint, verrou déjà pris. Elles expliquent le trou ;
+  elles ne le referment pas, seul un run réussi le fait.
+  {% if report.missed_total %}({{ report.missed_total }} au total.){% endif %}
+</p>
+{% endif %}
+{% endblock %}
