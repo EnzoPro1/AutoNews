@@ -67,8 +67,11 @@ $action = New-ScheduledTaskAction `
     -WorkingDirectory $RepoRoot
 
 # Declencheur principal : toutes les N heures, indefiniment.
+# StartBoundary dans le FUTUR proche. Avec une borne de depart deja passee,
+# Register-ScheduledTask enregistre la tache mais la laisse DESACTIVEE : elle
+# n'aurait jamais tourne, en silence. Constate a l'enregistrement initial.
 $repetition = New-TimeSpan -Hours $IntervalHours
-$principal = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddMinutes(5) `
+$principal = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) `
     -RepetitionInterval $repetition
 
 # Declencheur additionnel : ouverture / deverrouillage de session. C'est le
@@ -85,6 +88,10 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 2 `
     -RestartInterval (New-TimeSpan -Minutes 10)
 
+# Explicite, meme si c'est le defaut : une tache enregistree desactivee est
+# indiscernable d'une tache qui fonctionne, jusqu'a ce qu'on constate le trou.
+$settings.Enabled = $true
+
 Register-ScheduledTask `
     -TaskName $TaskName `
     -Action $action `
@@ -93,7 +100,22 @@ Register-ScheduledTask `
     -Description "Ingestion des flux AutoNews toutes les $IntervalHours h. Rattrapage actif (StartWhenAvailable)." `
     -Force | Out-Null
 
+# VERIFICATION APRES ENREGISTREMENT. Sans elle, ce script annoncerait un succes
+# pour une tache qui ne se declenchera jamais -- meme classe d'erreur qu'une
+# sauvegarde qu'on ne restaure jamais.
+Enable-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Out-Null
+$verif = Get-ScheduledTask -TaskName $TaskName
+if ($verif.State -eq 'Disabled' -or -not $verif.Settings.Enabled) {
+    throw "la tache '$TaskName' est enregistree mais DESACTIVEE. Elle ne se declenchera pas. Verifier dans le Planificateur de taches."
+}
+$info = $verif | Get-ScheduledTaskInfo
+if (-not $info.NextRunTime) {
+    throw "la tache '$TaskName' n'a aucune prochaine execution planifiee."
+}
+
 Write-Output "tache '$TaskName' enregistree, intervalle $IntervalHours h"
+Write-Output "  etat            : $($verif.State)"
+Write-Output "  prochaine exec. : $($info.NextRunTime)"
 Write-Output ""
 Write-Output "Verifier      : Get-ScheduledTask -TaskName '$TaskName' | Get-ScheduledTaskInfo"
 Write-Output "Lancer a la main : Start-ScheduledTask -TaskName '$TaskName'"
