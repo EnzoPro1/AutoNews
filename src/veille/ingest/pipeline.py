@@ -13,14 +13,17 @@ from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from veille.errors import FetchError, VeilleError
+from veille.errors import FetchError, IngestLockedError, VeilleError
 from veille.ingest.fetch import build_client, fetch_feed
 from veille.ingest.gaps import assess_gap
+from veille.ingest.lock import advisory_lock
+from veille.ingest.missed import drain_missed_runs
 from veille.ingest.parse import parse_feed
 from veille.ingest.store import store_entries
-from veille.models import Article, ArticleFeed, Feed, FeedRun
+from veille.models import Article, ArticleFeed, Feed, FeedRun, MissedRun
 from veille.schemas import FeedRunOutcome, FeedSpec
 
 logger = logging.getLogger(__name__)
@@ -32,23 +35,57 @@ def run_ingestion(
     *,
     client: httpx.Client | None = None,
 ) -> list[FeedRunOutcome]:
-    """Ingere chaque flux de `specs`. Ne leve jamais a cause d'un flux."""
+    """Ingere chaque flux de `specs`. Ne leve jamais a cause d'un flux.
+
+    Leve IngestLockedError si une autre ingestion tourne deja : ce n'est pas une
+    panne, aucun feed_run en erreur n'est ecrit pour ca.
+    """
     owns_client = client is None
     client = client or build_client()
 
     outcomes: list[FeedRunOutcome] = []
     try:
-        for spec in specs:
-            feed = session.scalar(select(Feed).where(Feed.slug == spec.id))
-            if feed is None:
-                logger.error("flux %s absent de la base : lancer `veille seed`", spec.id)
-                continue
-            outcomes.append(_ingest_one(session, spec, feed, client=client))
+        with advisory_lock(session) as acquired:
+            if not acquired:
+                _record_lock_conflict(session)
+                raise IngestLockedError("une autre ingestion est deja en cours")
+
+            # Drainage sous verrou : sans lui, deux processus remonteraient le
+            # meme fichier d'attente. Avant la boucle, pour que /coverage
+            # explique le trou des le run qui le referme.
+            drain_missed_runs(session)
+
+            for spec in specs:
+                feed = session.scalar(select(Feed).where(Feed.slug == spec.id))
+                if feed is None:
+                    logger.error("flux %s absent de la base : lancer `veille seed`", spec.id)
+                    continue
+                outcomes.append(_ingest_one(session, spec, feed, client=client))
     finally:
         if owns_client:
             client.close()
 
     return outcomes
+
+
+def _record_lock_conflict(session: Session) -> None:
+    """Trace le chevauchement dans missed_run, pas dans feed_run.
+
+    Aucun flux n'a ete contacte : ecrire onze feed_run en erreur donnerait deux
+    sens a cette table et ferait passer un chevauchement pour une panne.
+    """
+    now = datetime.now(tz=UTC)
+    session.execute(
+        pg_insert(MissedRun)
+        .values(
+            attempted_at=now,
+            reason="lock_held",
+            detail="une autre ingestion detenait le verrou",
+            drained_at=now,
+        )
+        .on_conflict_do_nothing(constraint="uq_missed_run_attempt")
+    )
+    session.commit()
 
 
 def _ingest_one(

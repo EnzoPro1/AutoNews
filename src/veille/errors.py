@@ -20,5 +20,9 @@ class FetchError(VeilleError):
         self.http_status = http_status
 
 
+class IngestLockedError(VeilleError):
+    """Une autre ingestion est deja en cours. Ce n'est pas une panne."""
+
+
 class FeedParseError(VeilleError):
     """Flux illisible : XML tronque ou malforme sans entree exploitable."""

@@ -12,13 +12,17 @@ import sys
 
 from veille.config import settings
 from veille.db import session_scope
-from veille.errors import VeilleError
+from veille.errors import IngestLockedError, VeilleError
 from veille.feeds_config import load_feeds
 from veille.ingest.pipeline import run_ingestion
 from veille.schemas import FeedSpec
 from veille.seed import seed_feeds
 
 logger = logging.getLogger("veille")
+
+#: Une autre ingestion tourne deja. Distinct de 1 (tous les flux ont echoue) et
+#: de 2 (configuration invalide) : l'enrobage doit pouvoir les separer.
+EXIT_LOCKED = 3
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,8 +70,14 @@ def _run_ingest(specs: list[FeedSpec], *, feed_id: str | None) -> int:
             logger.error("flux inconnu : %s", feed_id)
             return 2
 
-    with session_scope() as session:
-        outcomes = run_ingestion(session, specs)
+    try:
+        with session_scope() as session:
+            outcomes = run_ingestion(session, specs)
+    except IngestLockedError as exc:
+        # Code distinct : ce n'est pas une panne, et l'enrobage ne doit pas le
+        # journaliser comme telle. La tentative est deja tracee dans missed_run.
+        logger.info("%s", exc)
+        return EXIT_LOCKED
 
     if not outcomes:
         logger.error("aucun flux ingere : la table feed est-elle vide ? lancer `veille seed`")
