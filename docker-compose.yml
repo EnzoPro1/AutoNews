@@ -7,6 +7,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-veille}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Piege B : pg_dump ecrit DANS le conteneur, le fichier apparait sur
+      # l'hote par ce montage. Le dump ne transite jamais par un pipe
+      # PowerShell, qui le corromprait silencieusement (pseudo-TTY, UTF-16).
+      - ./backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-veille} -d ${POSTGRES_DB:-veille}"]
       interval: 5s
@@ -32,6 +36,8 @@ services:
       - ./migrations:/app/migrations
       - ./feeds.yaml:/app/feeds.yaml
       - ./alembic.ini:/app/alembic.ini
+      - ./backups:/backups
+      - ./state:/app/state
 
 volumes:
   pgdata:

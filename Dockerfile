@@ -44,6 +44,33 @@ COPY --from=builder /app /app
 COPY docker/extra-ca/ /usr/local/share/ca-certificates/extra/
 RUN update-ca-certificates > /dev/null 2>&1 || true
 
+# pg_dump / pg_restore en version 16 EXACTEMENT, pour que le test de
+# restauration s'execute la ou tourne pytest.
+#
+# Le client par defaut de Debian trixie est en 17, et ne convient pas : pg_dump
+# 17 sait bien lire un serveur 16, mais l'archive produite contient
+# `SET transaction_timeout`, parametre inexistant en 16, et la restauration vers
+# le serveur echoue. Mesure faite, l'erreur est exactement :
+#   ERROR: unrecognized configuration parameter "transaction_timeout"
+# Le depot PGDG donne la version alignee sur le serveur.
+#
+# Installe APRES update-ca-certificates : sinon curl echoue quand un antivirus
+# intercepte le TLS sur la machine de build.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl gnupg; \
+    . /etc/os-release; \
+    key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc; \
+    install -d "$(dirname "$key")"; \
+    curl --fail -o "$key" https://www.postgresql.org/media/keys/ACCC4CF8.asc; \
+    echo "deb [signed-by=$key] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-client-16; \
+    apt-get purge -y curl gnupg; \
+    apt-get autoremove -y; \
+    rm -rf /var/lib/apt/lists/*
+
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 COPY feeds.yaml ./feeds.yaml

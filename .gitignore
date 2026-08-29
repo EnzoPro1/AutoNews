@@ -12,3 +12,9 @@ build/
 
 # CA d interception locale (Avast, proxy d entreprise) : jamais versionnee
 docker/extra-ca/*.crt
+
+# Sauvegardes et etat local : jamais versionnes, les dossiers le sont
+backups/*
+!backups/.gitkeep
+state/*
+!state/.gitkeep
