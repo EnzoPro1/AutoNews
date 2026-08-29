@@ -28,6 +28,29 @@ MAX_FUTURE_SKEW = timedelta(hours=2)
 #: En dessous, c'est un timestamp a zero ou un champ vide mal interprete.
 MIN_PLAUSIBLE = datetime(2000, 1, 1, tzinfo=UTC)
 
+#: Une page entiere dont les dates tiennent dans cette fenetre ne porte pas des
+#: dates d'articles mais l'heure de generation du flux. Observe sur Actu IA :
+#: 15 items horodates entre 04:54:53 et 04:55:13, soit 20 secondes.
+DEGENERATE_SPAN = timedelta(minutes=5)
+
+#: En dessous de ce nombre d'items, une fenetre etroite peut etre une vraie
+#: rafale de publication. Au-dela, c'est un horodatage unique replique.
+DEGENERATE_MIN_ENTRIES = 5
+
+
+def has_degenerate_span(values: list[datetime]) -> bool:
+    """La page a-t-elle une chronologie exploitable ?
+
+    Sert a deux endroits qui doivent rester d'accord : `parse`, qui refuse de
+    faire passer un horodatage de generation pour une date d'article, et la
+    detection de trou, qui ne peut rien deduire d'une page sans chronologie.
+    Un seul seuil, defini ici, pour eviter qu'ils divergent.
+    """
+    if len(values) < DEGENERATE_MIN_ENTRIES:
+        return False
+    return (max(values) - min(values)) < DEGENERATE_SPAN
+
+
 _FORMATS: tuple[str, ...] = (
     "%Y-%m-%dT%H:%M:%S%z",
     "%Y-%m-%dT%H:%M:%S.%f%z",

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Flux qui horodate a l heure de generation</title>
+    <link>https://exemple-degenere.test/</link>
+    <description>Les six items portent l heure de construction du document, pas la date des articles. Comportement observe sur Actu IA.</description>
+    <item>
+      <title>Premier sujet</title>
+      <link>https://exemple-degenere.test/a</link>
+      <guid isPermaLink="false">urn:deg:1</guid>
+      <pubDate>Tue, 07 Jul 2026 04:54:53 +0000</pubDate>
+      <description>Un.</description>
+    </item>
+    <item>
+      <title>Deuxieme sujet</title>
+      <link>https://exemple-degenere.test/b</link>
+      <guid isPermaLink="false">urn:deg:2</guid>
+      <pubDate>Tue, 07 Jul 2026 04:54:54 +0000</pubDate>
+      <description>Deux.</description>
+    </item>
+    <item>
+      <title>Troisieme sujet</title>
+      <link>https://exemple-degenere.test/c</link>
+      <guid isPermaLink="false">urn:deg:3</guid>
+      <pubDate>Tue, 07 Jul 2026 04:54:57 +0000</pubDate>
+      <description>Trois.</description>
+    </item>
+    <item>
+      <title>Quatrieme sujet</title>
+      <link>https://exemple-degenere.test/d</link>
+      <guid isPermaLink="false">urn:deg:4</guid>
+      <pubDate>Tue, 07 Jul 2026 04:55:01 +0000</pubDate>
+      <description>Quatre.</description>
+    </item>
+    <item>
+      <title>Cinquieme sujet</title>
+      <link>https://exemple-degenere.test/e</link>
+      <guid isPermaLink="false">urn:deg:5</guid>
+      <pubDate>Tue, 07 Jul 2026 04:55:09 +0000</pubDate>
+      <description>Cinq.</description>
+    </item>
+    <item>
+      <title>Sixieme sujet</title>
+      <link>https://exemple-degenere.test/f</link>
+      <guid isPermaLink="false">urn:deg:6</guid>
+      <pubDate>Tue, 07 Jul 2026 04:55:13 +0000</pubDate>
+      <description>Six.</description>
+    </item>
+  </channel>
+</rss>

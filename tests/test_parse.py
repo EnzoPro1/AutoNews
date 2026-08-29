@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -209,3 +209,61 @@ def test_revision_changes_the_content_hash_but_not_the_url() -> None:
     assert revised.url_canonical == original.url_canonical
     assert revised.content_hash != original.content_hash
     assert revised.guid != original.guid, "le guid est instable, c'est pour ca qu'il n'est pas cle"
+
+
+# ------------------------------------------------- pages sans chronologie
+
+
+def test_degenerate_page_dates_are_demoted_to_fetched() -> None:
+    """Un flux qui horodate tout a son heure de generation ne fournit pas de
+    dates d'articles. Observe sur Actu IA : 15 items en 20 secondes."""
+    result = parse("degenerate_dates.xml")
+    assert len(result.entries) == 6
+    assert {e.date_source for e in result.entries} == {"fetched"}
+    assert {e.published_at for e in result.entries} == {NOW}
+
+
+def test_demotion_does_not_keep_the_bogus_timestamp() -> None:
+    """Conserver l'horodatage d'origine en le declarant 'fetched' ferait mentir
+    la colonne dans l'autre sens."""
+    for entry in parse("degenerate_dates.xml").entries:
+        assert entry.published_at == NOW
+        assert entry.published_at.year == 2026 and entry.published_at.month == 8
+
+
+def test_a_normal_feed_is_never_demoted() -> None:
+    """Le risque de cette regle est le faux positif : verifie sur les fixtures
+    dont les dates sont legitimes."""
+    for fixture in ("rss20_ok.xml", "atom_ok.xml"):
+        sources = {e.date_source for e in parse(fixture).entries}
+        assert sources != {"fetched"}, fixture
+
+
+def test_a_short_burst_is_not_demoted() -> None:
+    """En dessous de 5 entrees, une fenetre etroite peut etre une vraie rafale
+    de publication : on ne requalifie pas."""
+    from veille.normalize.dates import has_degenerate_span
+
+    base = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
+    burst_of_4 = [base + timedelta(seconds=10 * i) for i in range(4)]
+    assert has_degenerate_span(burst_of_4) is False
+
+    burst_of_6 = [base + timedelta(seconds=10 * i) for i in range(6)]
+    assert has_degenerate_span(burst_of_6) is True
+
+
+def test_span_just_over_the_window_is_kept() -> None:
+    from veille.normalize.dates import has_degenerate_span
+
+    base = datetime(2026, 8, 19, 8, 0, tzinfo=UTC)
+    assert has_degenerate_span([base + timedelta(minutes=i) for i in range(6)]) is False
+    assert has_degenerate_span([base + timedelta(seconds=50 * i) for i in range(6)]) is True
+
+
+def test_degenerate_rule_is_shared_with_gap_detection() -> None:
+    """Le seuil est defini une seule fois : parse et la detection de trou ne
+    doivent pas pouvoir diverger."""
+    from veille.normalize import dates
+
+    assert timedelta(minutes=5) == dates.DEGENERATE_SPAN
+    assert dates.DEGENERATE_MIN_ENTRIES == 5

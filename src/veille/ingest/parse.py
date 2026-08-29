@@ -8,6 +8,7 @@ qu'elle est pure ; `store` ne recalcule rien.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 from xml.sax import SAXException
@@ -15,7 +16,7 @@ from xml.sax import SAXException
 import feedparser
 
 from veille.errors import FeedParseError, InvalidUrlError
-from veille.normalize.dates import resolve_published
+from veille.normalize.dates import has_degenerate_span, resolve_published
 from veille.normalize.html import sanitize, strip_tags
 from veille.normalize.text import clean_title, content_hash
 from veille.normalize.urls import canonicalize_url
@@ -72,7 +73,41 @@ def parse_feed(body: bytes, *, fetched_at: datetime) -> ParseResult:
             continue
         entries.append(entry)
 
+    entries = _demote_degenerate_dates(entries, fetched_at=fetched_at)
+
     return ParseResult(entries=entries, bozo_message=bozo_message, n_skipped=skipped)
+
+
+def _demote_degenerate_dates(
+    entries: list[ParsedEntry], *, fetched_at: datetime
+) -> list[ParsedEntry]:
+    """Requalifie en 'fetched' les dates d'une page qui n'en sont pas.
+
+    Certains flux horodatent toutes leurs entrees a l'heure de generation du
+    document. `date_source` vaudrait alors 'published' pour une valeur qui n'a
+    rien d'une date de publication : la colonne mentirait, et `/` trierait ces
+    articles en tete comme s'ils etaient frais.
+
+    On ne conserve pas l'horodatage d'origine : le garder en le declarant
+    'fetched' ferait mentir la colonne dans l'autre sens. C'est une heure de
+    collecte, on l'ecrit comme telle.
+    """
+    from_feed = [e for e in entries if e.date_source != "fetched"]
+    if not has_degenerate_span([e.published_at for e in from_feed]):
+        return entries
+
+    logger.warning(
+        "page sans chronologie exploitable (%s entrees dans un intervalle de %s) : "
+        "dates requalifiees en 'fetched'",
+        len(from_feed),
+        max(e.published_at for e in from_feed) - min(e.published_at for e in from_feed),
+    )
+    return [
+        replace(entry, published_at=fetched_at, date_source="fetched")
+        if entry.date_source != "fetched"
+        else entry
+        for entry in entries
+    ]
 
 
 def _build_entry(raw: Any, *, fetched_at: datetime) -> ParsedEntry | None:
