@@ -16,12 +16,22 @@ Topic = Literal["ai", "sec", "both"]
 SourceType = Literal["media", "vendor", "official", "community"]
 DateSource = Literal["published", "updated", "fetched"]
 RunStatus = Literal["ok", "not_modified", "error"]
+GapStatus = Literal["none", "suspected", "unknown"]
+MissedReason = Literal["docker_unavailable", "lock_held", "wrapper_error"]
 
 LANGS: tuple[str, ...] = ("fr", "en")
 TOPICS: tuple[str, ...] = ("ai", "sec", "both")
 SOURCE_TYPES: tuple[str, ...] = ("media", "vendor", "official", "community")
 DATE_SOURCES: tuple[str, ...] = ("published", "updated", "fetched")
 RUN_STATUSES: tuple[str, ...] = ("ok", "not_modified", "error")
+
+#: Tri-etat, jamais un booleen. Precedent : date_is_fallback a ete supprime au
+#: profit de date_source parce que deux colonnes dont l'une se deduit de l'autre
+#: finissent par se contredire. "pas de trou" et "indeterminable" ne sont pas la
+#: meme information et ne doivent pas partager une valeur.
+GAP_STATUSES: tuple[str, ...] = ("none", "suspected", "unknown")
+
+MISSED_REASONS: tuple[str, ...] = ("docker_unavailable", "lock_held", "wrapper_error")
 
 
 @dataclass(frozen=True, slots=True)

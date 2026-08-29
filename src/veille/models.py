@@ -28,7 +28,15 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from veille.db import Base
-from veille.schemas import DATE_SOURCES, LANGS, RUN_STATUSES, SOURCE_TYPES, TOPICS
+from veille.schemas import (
+    DATE_SOURCES,
+    GAP_STATUSES,
+    LANGS,
+    MISSED_REASONS,
+    RUN_STATUSES,
+    SOURCE_TYPES,
+    TOPICS,
+)
 
 EMBEDDING_DIM = 1024
 
@@ -172,6 +180,7 @@ class FeedRun(Base):
     __tablename__ = "feed_run"
     __table_args__ = (
         CheckConstraint(_in_list("status", RUN_STATUSES), name="ck_feed_run_status"),
+        CheckConstraint(_in_list("gap_status", GAP_STATUSES), name="ck_feed_run_gap_status"),
         Index("ix_feed_run_feed_started", "feed_id", "started_at"),
     )
 
@@ -188,4 +197,54 @@ class FeedRun(Base):
     #: porte aussi les avertissements non bloquants (bozo_exception sur un run 'ok').
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    #: 'none' | 'suspected' | 'unknown'. Un flux RSS n'expose que sa page
+    #: courante : si le plus ancien item ramene est plus recent que tout ce
+    #: qu'on connaissait, des items ont defile hors de la page entre les deux
+    #: runs. 'unknown' n'est pas 'none' : ne pas savoir n'est pas savoir que non.
+    gap_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="unknown", default="unknown"
+    )
+    #: Les deux bornes de la decision, conservees pour pouvoir la rejouer a la
+    #: main. Un drapeau qu'on ne peut pas auditer est un drapeau qu'on cesse de
+    #: croire.
+    oldest_in_page: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    prev_max_published: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     feed: Mapped[Feed] = relationship(back_populates="runs")
+
+
+class MissedRun(Base):
+    """Une tentative d'ingestion qui n'a jamais atteint la base.
+
+    Table dediee et non des lignes feed_run : ces tentatives ne concernent aucun
+    flux en particulier (Docker etait mort, personne n'a ete contacte) et, par
+    la regle de couverture, un run en erreur ne ferme aucun intervalle. Elles
+    sont donc purement documentaires : elles expliquent POURQUOI il y a un trou,
+    alors que le trou lui-meme est deja revele par l'absence de run.
+
+    Les mettre dans feed_run donnerait deux sens a la meme table -- "on a
+    contacte ce flux" et "on n'a contacte personne" -- et toute requete du type
+    "quels flux sont instables ?" devrait filtrer par motif sur error_message.
+    C'est le defaut de date_is_fallback, une deuxieme fois.
+    """
+
+    __tablename__ = "missed_run"
+    __table_args__ = (
+        UniqueConstraint("attempted_at", "reason", name="uq_missed_run_attempt"),
+        CheckConstraint(_in_list("reason", MISSED_REASONS), name="ck_missed_run_reason"),
+        Index("ix_missed_run_attempted", "attempted_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    #: horodatage de la tentative, en UTC. Ecrit par l'enrobage PowerShell, qui
+    #: convertit explicitement depuis l'heure locale.
+    attempted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: quand la ligne a ete drainee du fichier d'attente vers la base.
+    drained_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<MissedRun {self.attempted_at} {self.reason}>"
